@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Garden Dashboard (MQTT)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .card h2 {
+      margin-bottom: 15px;
+      font-size: 18px;
+      color: #444;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    table th {
+      background: #4CAF50;
+      color: white;
+    }
+    .btn {
+      display: inline-block;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn:hover {
+      background: #45a049;
+    }
+    .status {
+      margin-top: 15px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <header>🌱 Smart Garden IoT Dashboard (MQTT)</header>
+  <div class="container">
+    <!-- Chart -->
+    <div class="card">
+      <h2>Data Suhu & Kelembaban</h2>
+      <canvas id="sensorChart"></canvas>
+    </div>
+
+    <!-- Relay Control -->
+    <div class="card">
+      <h2>Kontrol Pompa</h2>
+      <button class="btn" onclick="toggleRelay()">🔘 ON/OFF Pompa</button>
+      <div class="status" id="relayStatus">Status: OFF</div>
+    </div>
+
+    <!-- Log Table -->
+    <div class="card" style="grid-column: span 2;">
+      <h2>Log Pompa</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Kondisi</th>
+            <th>Sumber</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody id="logTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // --- MQTT Setup ---
+    const clientId = "webclient-" + Math.random().toString(16).substr(2, 8);
+    const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt", {
+      clientId: clientId
+    });
+
+    client.on("connect", () => {
+      console.log("✅ Connected to HiveMQ Broker");
+      client.subscribe("smartgarden/sensor");
+      client.subscribe("smartgarden/relay/status");
+    });
+
+    client.on("error", (err) => {
+      console.error("❌ MQTT Error:", err);
+    });
+
+    // --- Chart Setup ---
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const sensorChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Suhu (°C)',
+            data: [],
+            borderColor: 'red',
+            fill: false
+          },
+          {
+            label: 'Kelembaban (%)',
+            data: [],
+            borderColor: 'blue',
+            fill: false
+          }
+        ]
+      }
+    });
+
+    function updateChart(suhu, kelembaban) {
+      const now = new Date().toLocaleTimeString('id-ID');
+      sensorChart.data.labels.push(now);
+      sensorChart.data.datasets[0].data.push(suhu);
+      sensorChart.data.datasets[1].data.push(kelembaban);
+
+      if (sensorChart.data.labels.length > 10) {
+        sensorChart.data.labels.shift();
+        sensorChart.data.datasets[0].data.shift();
+        sensorChart.data.datasets[1].data.shift();
+      }
+
+      sensorChart.update();
+    }
+
+    // --- Log Table ---
+    function addLog(kondisi, sumber) {
+      const logTable = document.getElementById("logTable");
+      const row = logTable.insertRow(0);
+      row.insertCell(0).innerText = logTable.rows.length;
+      row.insertCell(1).innerText = kondisi;
+      row.insertCell(2).innerText = sumber;
+      row.insertCell(3).innerText = new Date().toLocaleString('id-ID');
+    }
+
+    // --- Relay Control ---
+    let relayOn = false;
+    function toggleRelay() {
+      relayOn = !relayOn;
+      document.getElementById("relayStatus").innerText = "Status: " + (relayOn ? "ON" : "OFF");
+      addLog(relayOn ? "Nyala" : "Mati", "Manual");
+
+      // Publish ke MQTT
+      client.publish("smartgarden/relay/control", relayOn ? "1" : "0");
+    }
+
+    // --- MQTT Listener ---
+    client.on("message", (topic, message) => {
+      const payload = message.toString();
+      console.log("📩 Message:", topic, payload);
+
+      if (topic === "smartgarden/sensor") {
+        try {
+          let data = JSON.parse(payload);
+          updateChart(data.suhu, data.kelembaban);
+        } catch (e) {
+          console.error("Invalid sensor data:", payload);
+        }
+      }
+
+      if (topic === "smartgarden/relay/status") {
+        let status = payload === "1";
+        relayOn = status;
+        document.getElementById("relayStatus").innerText = "Status: " + (relayOn ? "ON" : "OFF");
+        addLog(relayOn ? "Nyala" : "Mati", "Sensor");
+      }
+    });
+  </script>
+</body>
+</html>
