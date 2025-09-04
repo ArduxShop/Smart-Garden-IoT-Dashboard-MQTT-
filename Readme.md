@@ -1,5 +1,7 @@
 # 🌱 Smart Garden IoT Dashboard (MQTT)
+![Smart Garden IoT Dashboard](https://github.com/ArduxShop/Smart-Garden-IoT-Dashboard-MQTT-/blob/main/Smart%20Garden%20IoT%20Dashboard.png?raw=true)
 
+Deskripsi
 ```
 Deskripsi
 ---------
