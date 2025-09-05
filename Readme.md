@@ -70,6 +70,18 @@ Penambahan / Update Sejak Awal
 - Gauge visualisasi untuk sensor
 - Status relay dan mode muncul di bawah tombol kontrol
 - Semua aksi otomatis/manual tercatat di tabel log
+
+7. Reset Logs
+- Tombol "Clear Logs" ditambahkan
+- Menghapus semua log dari tabel dan localStorage
+
+8. Perbaikan Sinkronisasi
+- Status relay dan mode di-refresh otomatis dari broker MQTT
+- Menghindari konflik status antara dashboard dan ESP
+
+9. UI Update
+- Tabel log dengan highlight untuk sumber aksi (Manual, Dashboard, ESP, Otomatis)
+- Notifikasi kecil muncul saat mode berubah atau pompa ON/OFF
 ```
 
 ```
