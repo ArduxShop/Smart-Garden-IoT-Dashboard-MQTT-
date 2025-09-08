@@ -21,6 +21,11 @@ Dibangun menggunakan:
 - MQTT.js (komunikasi MQTT)
 ```
 
+## 🎥 Demo Video
+
+[![Smart Garden IoT Dashboard Demo](https://img.youtube.com/vi/e0ddYD_WNgc/0.jpg)](https://youtu.be/e0ddYD_WNgc)
+
+
 ```
 Fitur Versi Awal
 ----------------
